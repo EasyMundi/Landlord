@@ -38,11 +38,8 @@ trait BelongsToTenants
         });
 
         if (static::$landlord->isRelatedByMany()) {
-            static::created(function(Model $model){
+            static::saving(function(Model $model){
                 static::$landlord->newModelRelatedToManyTenants($model);
-            });
-            static::updated(function(Model $model){
-                static::$landlord->newModelRelatedToManyTenants($model, true);
             });
         }
     }
@@ -106,7 +103,7 @@ trait BelongsToTenants
     private function getTenantMorphRelationConfiguration()
     {
         $morphRelation = config('landlord.default_morph_relation');
-        $morphRelation+= isset($this->morphRelation) ? array_filter($this->morphRelation) : [];
+        $morphRelation += isset($this->morphRelation) ? array_filter($this->morphRelation) : [];
 
         return $morphRelation;
     }
