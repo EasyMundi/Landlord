@@ -17,7 +17,7 @@ class TenantManager
     /**
      * @var bool
      */
-    protected $enabled = false;
+    protected $enabled = true;
 
     /**
      * @var Collection
