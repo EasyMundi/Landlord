@@ -26,7 +26,7 @@ trait BelongsToTenants
 
         // Grab our singleton from the container
         static::$landlord = app(TenantManager::class);
-        static::$landlord->setType(! is_null($model->belongsToTenantType)
+        static::$landlord->setType(!is_null($model->belongsToTenantType)
             ? $model->belongsToTenantType : config('landlord.default_belongs_to_tenant_type'));
 
         // Add a global scope for each tenant this model should be scoped by.
@@ -38,10 +38,7 @@ trait BelongsToTenants
         });
 
         if (static::$landlord->isRelatedByMany()) {
-            static::created(function(Model $model){
-                static::$landlord->newModelRelatedToManyTenants($model);
-            });
-            static::updated(function(Model $model){
+            static::created(function (Model $model) {
                 static::$landlord->newModelRelatedToManyTenants($model);
             });
         }
@@ -66,12 +63,12 @@ trait BelongsToTenants
     public function getTenantModel()
     {
         $morphRelation = $this->getTenantMorphRelationConfiguration();
-        if (! class_exists($morphRelation['tenant_model'])) {
+        if (!class_exists($morphRelation['tenant_model'])) {
             throw new \InvalidArgumentException('$tenant_model must be an valid and existent class name');
         }
 
         $tenantModel = new $morphRelation['tenant_model'];
-        if (! $tenantModel instanceof Model) {
+        if (!$tenantModel instanceof Model) {
             throw new \InvalidArgumentException('$tenant_model must be an instance of Illuminate\Database\Eloquent\Model');
         }
 
@@ -86,12 +83,12 @@ trait BelongsToTenants
     public function getTenantRelationsModel()
     {
         $morphRelation = $this->getTenantMorphRelationConfiguration();
-        if (! class_exists($morphRelation['tenant_relations_model'])) {
+        if (!class_exists($morphRelation['tenant_relations_model'])) {
             throw new \InvalidArgumentException('$tenant_relations_model must be an valid and existent class name');
         }
 
         $tenantRelationsModel = new $morphRelation['tenant_relations_model'];
-        if (! $tenantRelationsModel instanceof Model) {
+        if (!$tenantRelationsModel instanceof Model) {
             throw new \InvalidArgumentException('$tenant_relations_model must be an instance of Illuminate\Database\Eloquent\Model');
         }
 
@@ -131,9 +128,9 @@ trait BelongsToTenants
      * @param mixed $id
      * @param array $columns
      *
+     * @return \Illuminate\Database\Eloquent\Collection|Model
      * @throws ModelNotFoundForTenantException
      *
-     * @return \Illuminate\Database\Eloquent\Collection|Model
      */
     public static function findOrFail($id, $columns = ['*'])
     {

@@ -5,7 +5,6 @@ namespace HipsterJazzbo\Landlord;
 use HipsterJazzbo\Landlord\Exceptions\TenantColumnUnknownException;
 use HipsterJazzbo\Landlord\Scopes\BelongsToManyTenants;
 use HipsterJazzbo\Landlord\Scopes\BelongsToOneTenant;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -63,7 +62,7 @@ class TenantManager
      * Add a tenant to scope by.
      *
      * @param string|Model $tenant
-     * @param mixed|null   $id
+     * @param mixed|null $id
      */
     public function addTenant($tenant, $id = null)
     {
@@ -113,8 +112,8 @@ class TenantManager
      */
     public function setType($type)
     {
-        if (! in_array($type, $this->possibleTypes)) {
-            throw new \InvalidArgumentException('$type must be "'.self::BELONGS_TO_TENANT_TYPE_TO_ONE.'" or "'.self::BELONGS_TO_TENANT_TYPE_TO_MANY.'"');
+        if (!in_array($type, $this->possibleTypes)) {
+            throw new \InvalidArgumentException('$type must be "' . self::BELONGS_TO_TENANT_TYPE_TO_ONE . '" or "' . self::BELONGS_TO_TENANT_TYPE_TO_MANY . '"');
         }
 
         $this->type = $type;
@@ -147,7 +146,7 @@ class TenantManager
     /**
      * Applies applicable tenant scopes to a model.
      *
-     * @param Model  $model
+     * @param Model $model
      * @param string $type
      */
     public function applyTenantScopes(Model $model)
@@ -164,7 +163,7 @@ class TenantManager
                 break;
 
             case self::BELONGS_TO_TENANT_TYPE_TO_MANY:
-                $model->addGlobalScope(new BelongsToManyTenants($this));
+                $model->addGlobalScope(new BelongsToManyTenants($this->tenants));
                 break;
         }
     }
@@ -190,7 +189,7 @@ class TenantManager
     /**
      * Add model polymorphic relation to tenants.
      *
-     * @param Model $model
+     * @param BelongsToTenants $model
      */
     public function newModelRelatedToManyTenants($model)
     {
@@ -247,7 +246,12 @@ class TenantManager
      */
     protected function modelTenants(Model $model)
     {
-        return isset($model->belongsToTenantType) && $model->belongsToTenantType == TenantManager::BELONGS_TO_TENANT_TYPE_TO_ONE
-            ? $this->tenants->only($model->getTenantColumns()) : $this->tenants;
+        $tenants = $this->tenants;
+        if (isset($model->belongsToTenantType)
+            && TenantManager::BELONGS_TO_TENANT_TYPE_TO_ONE == $model->belongsToTenantType
+        ) {
+            $tenants = $tenants->only($model->getTenantColumns());
+        }
+        return $tenants;
     }
 }

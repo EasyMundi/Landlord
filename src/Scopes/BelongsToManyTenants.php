@@ -2,20 +2,20 @@
 
 namespace HipsterJazzbo\Landlord\Scopes;
 
-use HipsterJazzbo\Landlord\TenantManager;
-use Illuminate\Database\Eloquent\Scope;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Support\Collection;
 
 class BelongsToManyTenants implements Scope
 {
-    /** @var TenantManager $manager */
-    private $manager;
+    /** @var \Illuminate\Support\Collection */
+    private $tenants;
 
-    public function __construct(TenantManager $manager)
+    public function __construct(Collection $tenants)
     {
-        $this->manager = $manager;
+        $this->tenants = $tenants;
     }
 
     /**
@@ -27,40 +27,49 @@ class BelongsToManyTenants implements Scope
      */
     public function apply(Builder $builder, Model $model)
     {
-        if ($this->manager->getTenants()->isEmpty()) {
+        if ($this->tenants->isEmpty()) {
             return;
         }
 
-        /** @var Model $tenant_model */
-        $tenant_model = $model->getTenantModel();
-        /** @var Model $tenant_relations_model */
-        $tenant_relations_model = $model->getTenantRelationsModel();
+        /** @var Model $tenantModel */
+        $tenantModel = $model->getTenantModel();
+        /** @var Model $tenantRelationsModel */
+        $tenantRelationsModel = $model->getTenantRelationsModel();
 
-        $builder->getQuery()->leftJoin(
-            $tenant_relations_model->getTable(),
-            function (JoinClause $join) use ($tenant_model, $tenant_relations_model, $model) {
-                /** @var Model $tenant_model */
-                /** @var Model $tenant_relations_model */
-                $join->on("{$tenant_relations_model->getTable()}.{$tenant_relations_model->getForeignKey()}", "=", "{$model->getTable()}.{$model->getKeyName()}");
-                $join->whereRaw("{$tenant_relations_model->getTable()}.{$tenant_relations_model->getTable()}_type = ?", [
-                    $model->getMorphClass()
-                ]);
-                $bindings = implode(',', $this->manager->getTenants()->toArray());
-                $join->whereRaw(
-                    "{$tenant_relations_model->getTable()}.{$tenant_model->getForeignKey()} IN ({$bindings})"
-                );
+        $builder->join($tenantRelationsModel->getTable(),
+            function (JoinClause $join) use ($tenantModel, $tenantRelationsModel, $model) {
 
-                if (method_exists($tenant_relations_model, "forceDelete")) {
-                    $join->whereNull("{$tenant_relations_model->getTable()}.deleted_at");
+                $join
+                    ->on(
+                        "{$tenantRelationsModel->getTable()}.{$tenantRelationsModel->getForeignKey()}",
+                        "=",
+                        "{$model->getTable()}.{$model->getKeyName()}"
+                    )
+                    ->where(
+                        "{$tenantRelationsModel->getTable()}.{$tenantRelationsModel->getTable()}_type",
+                        '=',
+                        $model->getMorphClass()
+                    )
+                    ->whereIn(
+                        "{$tenantRelationsModel->getTable()}.{$tenantModel->getForeignKey()}",
+                        $this->tenants
+                    );
+                if (method_exists($tenantRelationsModel, "forceDelete")) {
+                    $join->whereNull("{$tenantRelationsModel->getTable()}.deleted_at");
                 }
             }
-        )->whereNotNull("{$tenant_relations_model->getTable()}.{$tenant_relations_model->getKeyName()}");
-        $builder->getQuery()->join(
-            $tenant_model->getTable(),
-            function (JoinClause $join) use ($tenant_model, $tenant_relations_model, $model) {
-                $join->on("{$tenant_model->getTable()}.{$tenant_model->getKeyName()}", "=", "{$tenant_relations_model->getTable()}.{$tenant_model->getForeignKey()}");
-                if (method_exists($tenant_model, "forceDelete")) {
-                    $join->whereNull("{$tenant_model->getTable()}.deleted_at");
+        );
+
+        $builder->join(
+            $tenantModel->getTable(),
+            function (JoinClause $join) use ($tenantModel, $tenantRelationsModel, $model) {
+                $join->on(
+                    "{$tenantModel->getTable()}.{$tenantModel->getKeyName()}",
+                    "=",
+                    "{$tenantRelationsModel->getTable()}.{$tenantModel->getForeignKey()}"
+                );
+                if (method_exists($tenantModel, "forceDelete")) {
+                    $join->whereNull("{$tenantModel->getTable()}.deleted_at");
                 }
             }
         );
